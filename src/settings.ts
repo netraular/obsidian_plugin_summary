@@ -4,11 +4,13 @@ import MyPlugin from "./main";
 export interface MyPluginSettings {
 	webhookUrl: string;
 	apiKey: string;
+	language: string;
 }
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
-	webhookUrl: 'https://n8n.raular.com/webhook/474b8804-ad6b-4181-ae0b-c889efd98b80',
-	apiKey: 'obsidiansecretapipassword123'
+	webhookUrl: 'https://n8n.raular.com/webhook-test/474b8804-ad6b-4181-ae0b-c889efd98b80',
+	apiKey: 'obsidiansecretapipassword123',
+	language: 'es'
 }
 
 export class SampleSettingTab extends PluginSettingTab {
@@ -45,6 +47,17 @@ export class SampleSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.apiKey)
 				.onChange(async (value) => {
 					this.plugin.settings.apiKey = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Language')
+			.setDesc('The language code for audio transcription (e.g., es, en, fr)')
+			.addText(text => text
+				.setPlaceholder('es')
+				.setValue(this.plugin.settings.language)
+				.onChange(async (value) => {
+					this.plugin.settings.language = value;
 					await this.plugin.saveSettings();
 				}));
 

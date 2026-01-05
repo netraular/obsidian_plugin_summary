@@ -16,6 +16,7 @@ export default class MyPlugin extends Plugin {
 			this.settings.webhookUrl,
 			this.settings.apiKey
 		);
+		this.webhookService.setVault(this.app.vault);
 
 		// This creates an icon in the left ribbon - clicking it tests the webhook
 		this.addRibbonIcon('dice', 'Test webhook connection', async (evt: MouseEvent) => {
@@ -103,11 +104,18 @@ export default class MyPlugin extends Plugin {
 	/**
 	 * Extract audio recording embeds from content
 	 * Matches patterns like: ![[Recording 20260105012858.m4a]]
+	 * Returns the filename without the embed syntax
 	 */
 	extractAudioRecordings(content: string): string[] {
-		const audioPattern = /!\[\[Recording[^\]]+\.(m4a|mp3|wav|webm|ogg)\]\]/gi;
-		const matches = content.match(audioPattern);
-		return matches || [];
+		const audioPattern = /!\[\[(Recording[^\]]+\.(m4a|mp3|wav|webm|ogg))\]\]/gi;
+		const matches: string[] = [];
+		let match;
+		while ((match = audioPattern.exec(content)) !== null) {
+			if (match[1]) {
+				matches.push(match[1]); // Get just the filename
+			}
+		}
+		return matches;
 	}
 
 	/**
@@ -140,24 +148,71 @@ export default class MyPlugin extends Plugin {
 	}
 
 	/**
-	 * Send webhook notification for new audio recordings
+	 * Send webhook notification with audio files
 	 */
 	async sendAudioRecordingWebhook(file: TFile, recordings: string[]) {
-		new Notice(`🎙️ Audio recording detected, sending to webhook...`);
-		
-		const result = await this.webhookService.sendVoiceNoteData(
-			file.basename,
-			file.basename, // The date is the filename
-			recordings.join(', ')
-		);
-		
-		if (result.success) {
-			const answer = result.data?.answer || result.message;
-			new Notice(`✅ ${answer}`);
-			console.log('Webhook response:', result.data);
-		} else {
-			new Notice(`❌ ${result.message}`);
-			console.error('Webhook error:', result.message);
+		for (const audioFileName of recordings) {
+			new Notice(`🎙️ Sending audio: ${audioFileName}...`);
+			
+			const result = await this.webhookService.sendAudioFile(
+				audioFileName,
+				file.basename,
+				file.basename, // The date is the filename
+				this.settings.language
+			);
+			
+			if (result.success) {
+				const answer = result.data?.answer || result.message;
+				new Notice(`✅ ${answer}`);
+				console.log('Webhook response:', result.data);
+				
+				// If the response contains a 'text' field, insert it below the audio in the note
+				if (result.data?.text) {
+					await this.insertTextBelowAudio(file, audioFileName, result.data.text);
+				}
+			} else {
+				new Notice(`❌ ${result.message}`);
+				console.error('Webhook error:', result.message);
+			}
+		}
+	}
+
+	/**
+	 * Insert transcription text below the audio embed in the note
+	 */
+	async insertTextBelowAudio(file: TFile, audioFileName: string, text: string) {
+		try {
+			const content = await this.app.vault.read(file);
+			
+			// Find the audio embed pattern: ![[audioFileName]]
+			const audioEmbed = `![[${audioFileName}]]`;
+			const audioIndex = content.indexOf(audioEmbed);
+			
+			if (audioIndex === -1) {
+				console.error(`Audio embed not found: ${audioEmbed}`);
+				return;
+			}
+			
+			// Find the end of the line with the audio embed
+			const endOfAudioLine = content.indexOf('\n', audioIndex);
+			
+			// Insert the text after the audio line
+			const insertPosition = endOfAudioLine === -1 ? content.length : endOfAudioLine;
+			const newContent = 
+				content.slice(0, insertPosition) + 
+				'\n' + text + 
+				content.slice(insertPosition);
+			
+			// Update the file
+			await this.app.vault.modify(file, newContent);
+			
+			// Update the cache to prevent re-triggering
+			this.fileContentCache.set(file.path, newContent);
+			
+			console.log(`Inserted transcription text below ${audioFileName}`);
+		} catch (error) {
+			console.error('Error inserting text:', error);
+			new Notice(`❌ Error inserting transcription text`);
 		}
 	}
 }
