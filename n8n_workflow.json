@@ -1,0 +1,224 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "474b8804-ad6b-4181-ae0b-c889efd98b80",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -16,
+        0
+      ],
+      "id": "12f2e893-5558-4531-b103-771471c26d3b",
+      "name": "Webhook",
+      "webhookId": "474b8804-ad6b-4181-ae0b-c889efd98b80",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Q213rWVuNysVkpic",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.final_response }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Typ",
+                "value": "text/plain; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        976,
+        0
+      ],
+      "id": "43e61bd9-e2a5-4375-923e-a806bb37fa53",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=audio"
+            },
+            {
+              "name": "language",
+              "value": "={{ $json.body.language }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "fb16a2be-603b-43cd-93bb-e54e2aeb253a",
+      "name": "HTTP Request",
+      "credentials": {
+        "groqApi": {
+          "id": "vKeLWCiYIuIRcYKb",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Eres un asistente que extrae tareas de entradas de diario personal.\n\nAnaliza el texto del usuario e identifica cualquier compromiso, acción futura o tarea pendiente.\n\n\nTu salida debe seguir estrictamente este formato:\n\n\n### Tareas\n\n- [ ] Tarea detectada\n\n- [ ] Otra tarea detectada\n\n\nSi no detectas ninguna acción futura o tarea, devuelve únicamente el título \"### Tareas\".\n\nNo incluyas texto conversacional, saludos ni explicaciones adicionales."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        432,
+        0
+      ],
+      "id": "fa42e980-ff21-4411-841b-2962ff5fbd1e",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        384,
+        192
+      ],
+      "id": "a65840a8-d642-4743-994d-67e053f30981",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "vKeLWCiYIuIRcYKb",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\n// Iteramos por si hay múltiples entradas\nfor (const [index, item] of $input.all().entries()) {\n\n  // 1. Obtenemos el texto de las tareas (del nodo actual)\n  const tasks = item.json.text;\n\n  // 2. Obtenemos el texto original (del nodo HTTP Request)\n  const voiceNote = $('HTTP Request').all()[index].json.text;\n\n  // 3. Creamos el texto combinado\n  const combinedText = `${tasks}\\n\\n### Voice note\\n${voiceNote}`;\n\n  // 4. Empujamos solo este resultado limpio al array de salida\n  results.push({\n    json: {\n      final_response: combinedText\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        0
+      ],
+      "id": "d3bf908e-e340-49ca-81d1-64c34b401321",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8d44d313-64da-467b-a9f8-11a6b5ec0ffa",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "69e4de999edc1d190884667166352a6efe382977a7d05941176a44e1dfea0acd"
+  },
+  "id": "ZECfdOY4TQv6EtXn",
+  "tags": []
+}

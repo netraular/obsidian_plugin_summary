@@ -155,7 +155,17 @@ export class WebhookService {
             });
 
             if (response.ok) {
-                const data = await response.json();
+                // Try to parse as JSON first, fall back to text if it fails
+                const responseText = await response.text();
+                let data: any;
+                
+                try {
+                    data = JSON.parse(responseText);
+                } catch {
+                    // Response is plain text, wrap it in an object
+                    data = { text: responseText };
+                }
+                
                 return {
                     success: true,
                     message: 'Audio file sent successfully!',
