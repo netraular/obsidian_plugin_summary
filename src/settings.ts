@@ -1,22 +1,22 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+import VoiceNoteWebhookPlugin from "./main";
 
-export interface MyPluginSettings {
+export interface VoiceNoteWebhookSettings {
 	webhookUrl: string;
 	apiKey: string;
 	language: string;
 }
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
+export const DEFAULT_SETTINGS: VoiceNoteWebhookSettings = {
 	webhookUrl: 'https://n8n.raular.com/webhook-test/474b8804-ad6b-4181-ae0b-c889efd98b80',
 	apiKey: 'obsidiansecretapipassword123',
 	language: 'es'
 }
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+export class VoiceNoteWebhookSettingTab extends PluginSettingTab {
+	plugin: VoiceNoteWebhookPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: VoiceNoteWebhookPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}

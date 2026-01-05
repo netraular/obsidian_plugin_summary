@@ -1,9 +1,9 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin, TFile} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import {Notice, Plugin, TFile} from 'obsidian';
+import {DEFAULT_SETTINGS, VoiceNoteWebhookSettings, VoiceNoteWebhookSettingTab} from "./settings";
 import {WebhookService} from "./services/webhookService";
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class VoiceNoteWebhookPlugin extends Plugin {
+	settings: VoiceNoteWebhookSettings;
 	webhookService: WebhookService;
 	// Track file contents to detect new audio recordings
 	private fileContentCache: Map<string, string> = new Map();
@@ -28,7 +28,7 @@ export default class MyPlugin extends Plugin {
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new VoiceNoteWebhookSettingTab(this.app, this));
 
 		// Register event to monitor file modifications (for voice notes)
 		this.registerEvent(
@@ -49,7 +49,7 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<VoiceNoteWebhookSettings>);
 	}
 
 	async saveSettings() {
@@ -209,21 +209,5 @@ export default class MyPlugin extends Plugin {
 			console.error('Error inserting text:', error);
 			new Notice(`❌ Error inserting transcription text`);
 		}
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
 	}
 }

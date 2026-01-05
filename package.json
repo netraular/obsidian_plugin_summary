@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "voice-note-webhook",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Obsidian plugin that sends voice recordings to a webhook and inserts transcriptions",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
