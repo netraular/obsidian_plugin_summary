@@ -18,11 +18,6 @@ export default class MyPlugin extends Plugin {
 		);
 		this.webhookService.setVault(this.app.vault);
 
-		// This creates an icon in the left ribbon - clicking it tests the webhook
-		this.addRibbonIcon('dice', 'Test webhook connection', async (evt: MouseEvent) => {
-			await this.testWebhookConnection();
-		});
-
 		// This adds a command to test the webhook connection
 		this.addCommand({
 			id: 'test-webhook-connection',
